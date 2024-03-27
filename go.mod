@@ -3,6 +3,7 @@ module github.com/rezaAmiri123/kingscomp
 go 1.21
 
 require (
+	github.com/google/uuid v1.1.2
 	github.com/joho/godotenv v1.5.1
 	github.com/samber/lo v1.39.0
 	github.com/sirupsen/logrus v1.9.3
