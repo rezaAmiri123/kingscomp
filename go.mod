@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.11.4
+	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/redis/rueidis v1.0.32
 	github.com/samber/lo v1.39.0
