@@ -6,13 +6,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
-	"runtime/trace"
 	"sort"
 	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 	"github.com/rezaAmiri123/kingscomp/internal/config"
+	"github.com/sirupsen/logrus"
 )
 
 type J map[string]any

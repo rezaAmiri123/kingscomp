@@ -1,10 +1,13 @@
 package webapp
 
 import (
+	"strconv"
+
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/rezaAmiri123/kingscomp/internal/entity"
 	"github.com/rezaAmiri123/kingscomp/internal/events"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 )
 
 type AnswerSerializer struct {
@@ -178,6 +181,11 @@ func NewEventResponseSerializer(lobby entity.Lobby, info events.EventInfo, hash 
 	}
 }
 
-func Hash(t any)(string,error){
-	h,err := hashstructure.Hash(t, hashstructure.FormatV1,nil)
+func Hash(t any) (string, error) {
+	h, err := hashstructure.Hash(t, hashstructure.FormatV1, nil)
+	if err != nil {
+		logrus.WithError(err).WithField("item", t).Errorln("couldn't generate hash")
+		return "", err
+	}
+	return strconv.FormatUint(h, 10), nil
 }
