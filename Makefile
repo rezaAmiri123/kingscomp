@@ -14,5 +14,6 @@ scale:
 dev:generate
 	go run main.go serve
 
-generate:
+generate-templ:
 	templ generate
+
