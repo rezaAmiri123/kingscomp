@@ -3,15 +3,17 @@ package cmd
 import (
 	"context"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/rezaAmiri123/kingscomp/steps/06_web/internal/config"
-	"github.com/rezaAmiri123/kingscomp/steps/06_web/internal/matchmaking"
-	"github.com/rezaAmiri123/kingscomp/steps/06_web/internal/repository"
-	"github.com/rezaAmiri123/kingscomp/steps/06_web/internal/repository/redis"
-	"github.com/rezaAmiri123/kingscomp/steps/06_web/internal/service"
-	"github.com/rezaAmiri123/kingscomp/steps/06_web/internal/telegram"
-	"github.com/rezaAmiri123/kingscomp/steps/06_web/internal/webapp"
+	"github.com/rezaAmiri123/kingscomp/steps/07_web/internal/config"
+	"github.com/rezaAmiri123/kingscomp/steps/07_web/internal/matchmaking"
+	"github.com/rezaAmiri123/kingscomp/steps/07_web/internal/repository"
+	"github.com/rezaAmiri123/kingscomp/steps/07_web/internal/repository/redis"
+	"github.com/rezaAmiri123/kingscomp/steps/07_web/internal/service"
+	"github.com/rezaAmiri123/kingscomp/steps/07_web/internal/telegram"
+	"github.com/rezaAmiri123/kingscomp/steps/07_web/internal/webapp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.ngrok.com/ngrok"
@@ -51,22 +53,32 @@ func serve() {
 
 	wa := webapp.NewWebApp(app, ":8080")
 
+	ctx, cancel := signal.NotifyContext(context.Background(),os.Interrupt)
+	defer cancel()
+
 	// use ngrok if its local
 	if os.Getenv("ENV") == "local" {
-		listener, err := ngrok.Listen(context.Background(),
-			ngrokconfig.HTTPEndpoint(),
+		listener, err := ngrok.Listen(ctx,
+			ngrokconfig.HTTPEndpoint(ngrokconfig.WithDomain(os.Getenv("NGROK_DOMAIN"))),
 			ngrok.WithAuthtokenFromEnv(),
 		)
 		if err != nil {
 			logrus.WithError(err).Fatalln("couldn't set up ngrok")
 		}
+		defer listener.Close()
 		config.Default.WebAppAddr = "https://" + listener.Addr().String()
 		logrus.WithField("ngrok_addr", config.Default.WebAppAddr).Info("local server is now online")
 		logrus.WithError(wa.StartDev(listener)).Errorln("http server error")
-		return
+	} else{
+		wa.Start()
 	}
 
-	wa.Start()
+	defer wa.Shutdown(context.Background())
+	defer tg.Shutdown()
+
+	<-ctx.Done()
+	logrus.Info("shutting down the server ... please wait ...")
+	<-time.After(time.Second)
 }
 
 func init() {
