@@ -1,0 +1,17 @@
+package pages
+
+import "github.com/rezaAmiri123/kingscomp/steps/08_question/internal/webapp/views/layout"
+
+
+templ LobbyPage(lobbyId string){
+@layout.Base(){
+
+<div class="center" x-init="
+ let readyResponse = await post('/lobby/'+$root.dataset.lobbyid+'/ready')
+" x-data="" data-lobbyid={lobbyId}>
+    <p class="hint" style="margin-bottom: 10px">در اینجا بزودی یک بازی قرار میگیرد!</p>
+    <button class="tg-button">یک دکمه پیشنهادی</button>
+</div>
+
+}
+}
