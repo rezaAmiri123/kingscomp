@@ -72,42 +72,42 @@ type lobbyEventRequest struct {
 	Hash string `json:"hash"`
 }
 
-func(w *WebApp)lobbyEvents(c echo.Context)error{
+func (w *WebApp) lobbyEvents(c echo.Context) error {
 	lobby := getLobby(c)
 
 	// get current lobby hash
-	ch := make(chan EventResponseSerializer,1)
-	cancel, _ := w.gs.PubSub.Register("lobby."+lobby.ID,events.EventAny,func(info events.EventInfo) {
-		if !info.IsType(events.EventForceLobbyReload){
+	ch := make(chan EventResponseSerializer, 1)
+	cancel, _ := w.gs.PubSub.Register("lobby."+lobby.ID, events.EventAny, func(info events.EventInfo) {
+		if !info.IsType(events.EventForceLobbyReload) {
 			return
 		}
 		logrus.WithField("lobbyId", lobby.ID).Info("lobby event update")
 
-		lobby,err := w.App.Lobby.Get(c.Request().Context(), lobby.EntityID())
-		if err!= nil{
+		lobby, err := w.App.Lobby.Get(c.Request().Context(), lobby.EntityID())
+		if err != nil {
 			return
 		}
 
 		h, _ := Hash(lobby)
-		ch <- NewEventResponseSerializer(lobby,info,h)
+		ch <- NewEventResponseSerializer(lobby, info, h)
 	})
 	defer cancel()
 
 	lobby, err := w.App.Lobby.Get(c.Request().Context(), lobby.EntityID())
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	// this part only works if the client sends a hash
 	var request lobbyEventRequest
-	if err := c.Bind(&request);err== nil&&request.Hash!= ""{
-		h,err := Hash(lobby)
-		if err!= nil{
+	if err := c.Bind(&request); err == nil && request.Hash != "" {
+		h, err := Hash(lobby)
+		if err != nil {
 			logrus.WithError(err).Errorln("hash has failed!")
 			return err
 		}
 
-		if h != request.Hash{
+		if h != request.Hash {
 			logrus.WithFields(
 				logrus.Fields{
 					"lobbyId":  lobby.ID,
@@ -118,7 +118,7 @@ func(w *WebApp)lobbyEvents(c echo.Context)error{
 		}
 	}
 
-	select{
+	select {
 	case response := <-ch:
 		return c.JSON(200, ResponseOk(200, response))
 	case <-time.After(time.Minute):

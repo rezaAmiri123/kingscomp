@@ -7,18 +7,15 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/rezaAmiri123/kingscomp/steps/09_game/internal/config"
-	"github.com/rezaAmiri123/kingscomp/steps/09_game/internal/gameserver"
-	"github.com/rezaAmiri123/kingscomp/steps/09_game/internal/matchmaking"
-	"github.com/rezaAmiri123/kingscomp/steps/09_game/internal/repository"
-	"github.com/rezaAmiri123/kingscomp/steps/09_game/internal/repository/redis"
-	"github.com/rezaAmiri123/kingscomp/steps/09_game/internal/service"
-	"github.com/rezaAmiri123/kingscomp/steps/09_game/internal/telegram"
-	"github.com/rezaAmiri123/kingscomp/steps/09_game/internal/webapp"
+	"github.com/rezaAmiri123/kingscomp/steps/10_event/internal/gameserver"
+	"github.com/rezaAmiri123/kingscomp/steps/10_event/internal/matchmaking"
+	"github.com/rezaAmiri123/kingscomp/steps/10_event/internal/repository"
+	"github.com/rezaAmiri123/kingscomp/steps/10_event/internal/repository/redis"
+	"github.com/rezaAmiri123/kingscomp/steps/10_event/internal/service"
+	"github.com/rezaAmiri123/kingscomp/steps/10_event/internal/telegram"
+	"github.com/rezaAmiri123/kingscomp/steps/10_event/internal/webapp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.ngrok.com/ngrok"
-	ngrokconfig "golang.ngrok.com/ngrok/config"
 )
 
 // serveCmd represents the serve command
@@ -47,8 +44,8 @@ func serve() {
 		service.NewLobbyService(lobbyRepository),
 	)
 
-	mm := matchmaking.NewRedisMatchmaking(redisClient, lobbyRepository, questionRepository)
-	gs := gameserver.NewGameServer(app)
+	mm := matchmaking.NewRedisMatchmaking(redisClient, lobbyRepository, questionRepository, accountRepository)
+	gs := gameserver.NewGameServer(app, gameserver.DefaultGameServerConfig())
 
 	tg, err := telegram.NewTelegram(app, mm, gs, os.Getenv("BOT_API"))
 	if err != nil {
@@ -61,29 +58,24 @@ func serve() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	// use ngrok if its local
 	if os.Getenv("ENV") == "local" {
-		listener, err := ngrok.Listen(ctx,
-			ngrokconfig.HTTPEndpoint(ngrokconfig.WithDomain(os.Getenv("NGROK_DOMAIN"))),
-			ngrok.WithAuthtokenFromEnv(),
-		)
-		if err != nil {
-			logrus.WithError(err).Fatalln("couldn't set up ngrok")
-		}
-		defer listener.Close()
-		config.Default.WebAppAddr = "https://" + listener.Addr().String()
-		logrus.WithField("ngrok_addr", config.Default.WebAppAddr).Info("local server is now online")
-		logrus.WithError(wa.StartDev(listener)).Errorln("http server error")
+		go func() {
+			logrus.WithError(wa.StartDev()).Errorln("http server error")
+		}()
 	} else {
-		wa.Start()
+		go func() {
+			logrus.WithError(wa.Start()).Errorln("http server error")
+		}()
 	}
 
-	defer wa.Shutdown(context.Background())
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	defer wa.Shutdown(shutdownCtx)
 	defer tg.Shutdown()
 
+	logrus.Info("server is up and running")
 	<-ctx.Done()
 	logrus.Info("shutting down the server ... please wait ...")
-	<-time.After(time.Second)
 }
 
 func init() {
