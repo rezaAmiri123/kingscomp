@@ -14,6 +14,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.8.4
+	go.uber.org/automaxprocs v1.5.3
 	golang.ngrok.com/ngrok v1.10.0
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
 	gopkg.in/telebot.v3 v3.2.1
